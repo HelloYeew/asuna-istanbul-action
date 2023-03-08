@@ -78,6 +78,12 @@ runs:
           echo $asuna
           echo "::set-output name=asuna::$asuna"
 
+    - name: Remove first and last line of coverage.txt
+      shell: bash
+      run: |
+          sed -i '1d' coverage.txt
+          sed -i '$d' coverage.txt
+
     - name: Store coverage report as result
       id: coverage
       env:
