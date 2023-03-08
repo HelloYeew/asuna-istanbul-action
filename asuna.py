@@ -35,7 +35,7 @@ form_data = {
     'name': name,
     'description': description,
     # it's float in coverage.json
-    'percentage': coverage_json['totals']['percent_covered'],
+    'percentage': coverage_json['total']['statements']['pct'],
     'coverage': coverage
 }
 
