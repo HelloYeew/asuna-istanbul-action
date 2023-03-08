@@ -62,4 +62,4 @@ else:
 
     # Write markdown file
     with open('asuna.md', 'w') as f:
-        f.writelines(f'[📔Go to project]({output["project_url"]}) | [🔗Full report]({output["url"]})')
+        f.writelines(f'[📔Go to project]({output["project_url"]}) | [🔗Report]({output["url"]})')
