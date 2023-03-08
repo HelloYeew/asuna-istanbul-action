@@ -1,0 +1,123 @@
+name: 'Asuna Jest Action'
+author: 'HelloYeew'
+description: 'Running test on your project and upload coverage report to Asuna'
+inputs:
+  ASUNA_UPLOAD_KEY:
+    description: "Asuna project's upload key"
+    required: true
+    default: ASUNA_UPLOAD_KEY
+
+  ASUNA_ENDPOINT:
+    description: "Asuna endpoint"
+    required: false
+    default: https://asuna.helloyeew.dev/api/coverage/upload
+
+  JEST_COMMAND:
+    description: "Command to run Jest test with coverage"
+    required: true
+    default: npm run test:asuna
+
+runs:
+  using: 'composite'
+  steps:
+    - name: Setup Python 3.11
+      uses: actions/setup-python@v2
+      with:
+          python-version: 3.11
+
+    - name: Install requirements
+      shell: bash
+      run: |
+        pip install python-magic
+        pip install coverage
+        pip install requests
+
+    - name: Install libmagic1
+      shell: bash
+      run: |
+          sudo apt-get update
+          sudo apt-get install libmagic1
+
+    - name: Run Jest test
+      env:
+        COVERAGEPY_COMMAND: ${{ inputs.COVERAGEPY_COMMAND }}
+      shell: bash
+      run: ${{ inputs.JEST_COMMAND }}
+
+    - name: Download upload script
+      shell: bash
+      run: |
+          curl -L https://raw.githubusercontent.com/HelloYeew/asuna-jest-action/main/asuna.py -o asuna.py
+
+    - name: Upload coverage.py results to Asuna
+      env:
+          ASUNA_UPLOAD_KEY: ${{ inputs.ASUNA_UPLOAD_KEY }}
+          ASUNA_ENDPOINT: ${{ inputs.ASUNA_ENDPOINT }}
+          # Get event name that is this pull request or push
+          EVENT_NAME: ${{ github.event_name }}
+          PULL_REQUEST_NUMBER: ${{ github.event.number }}
+          PULL_REQUEST_BRANCH: ${{ github.event.pull_request.head.ref }}
+          PULL_REQUEST_HEAD: ${{ github.event.pull_request.head.sha }}
+          PULL_REQUEST_TITLE: ${{ github.event.pull_request.title }}
+          PUSH_BRANCH: ${{ github.ref }}
+          PUSH_COMMIT: ${{ github.sha }}
+      shell: bash
+      run: |
+        python asuna.py
+
+    - name: Store asuna.md as result
+      id: asuna
+      env:
+          ACTION_ALLOW_UNSECURE_COMMANDS: true
+      shell: bash
+      run: |
+          asuna=$(cat asuna.md)
+          asuna="${asuna//'%'/'%25'}"
+          asuna="${asuna//$'\n'/'%0A'}"
+          asuna="${asuna//$'\r'/'%0D'}"
+          echo $asuna
+          echo "::set-output name=asuna::$asuna"
+
+    - name: Store coverage report as result
+      id: coverage
+      env:
+        ACTION_ALLOW_UNSECURE_COMMANDS: true
+      shell: bash
+      run: |
+          coverage=$(cat coverage.txt)
+          coverage="${coverage//'%'/'%25'}"
+          coverage="${coverage//$'\n'/'%0A'}"
+          coverage="${coverage//$'\r'/'%0D'}"
+          echo $coverage
+          echo "::set-output name=coverage::$coverage"
+
+    - name: Find Comment ID of old comment if exists on pull request
+      if: ${{ github.event_name == 'pull_request' }}
+      uses: peter-evans/find-comment@v2
+      id: fc
+      with:
+        issue-number: ${{ github.event.number }}
+        comment-author: 'github-actions[bot]'
+        body-includes: '## 🧪️Coverage Report'
+
+    - name: Comment on pull request or update old comment
+      if: ${{ github.event_name == 'pull_request' }}
+      uses: peter-evans/create-or-update-comment@v2
+      with:
+        comment-id: ${{ steps.fc.outputs.comment-id }}
+        issue-number: ${{ github.event.number }}
+        body: |
+          ## 🧪️Coverage Report
+
+          ${{ steps.asuna.outputs.asuna }}
+
+          ${{ steps.coverage.outputs.coverage }}
+
+          ---------------------------------------
+          🗡️ Generate report by [Asuna](https://asuna.helloyeew.dev)
+        reactions: rocket
+        edit-mode: replace
+
+branding:
+  icon: 'check-square'
+  color: 'red'
