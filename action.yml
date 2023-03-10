@@ -12,7 +12,7 @@ inputs:
     required: false
     default: https://asuna.helloyeew.dev/api/coverage/upload
 
-  JEST_COMMAND:
+  ISTANBUL_COMMAND:
     description: "Command to run Jest test with coverage"
     required: true
     default: npm run test:asuna
@@ -42,12 +42,12 @@ runs:
       env:
         COVERAGEPY_COMMAND: ${{ inputs.COVERAGEPY_COMMAND }}
       shell: bash
-      run: ${{ inputs.JEST_COMMAND }}
+      run: ${{ inputs.ISTANBUL_COMMAND }}
 
     - name: Download upload script
       shell: bash
       run: |
-          curl -L https://raw.githubusercontent.com/HelloYeew/asuna-jest-action/main/asuna.py -o asuna.py
+          curl -L https://raw.githubusercontent.com/HelloYeew/asuna-istanbul-action/main/asuna.py -o asuna.py
 
     - name: Upload coverage.py results to Asuna
       env:
